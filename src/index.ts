@@ -14,7 +14,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // Imported for its `agent/request` event module augmentation on cordis' Events.
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import z from '@deepseek-ai/schemastery'
-import { hasImageBlocks } from './detect.ts'
+import { hasImageBlocks } from './detect.js'
 
 export const name = 'llm-vision-router'
 export const inject = [] as const
