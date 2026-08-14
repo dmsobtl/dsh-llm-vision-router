@@ -1,0 +1,15 @@
+# dsh-llm-vision-router: auto-switch to vision model when images are present.
+#
+# Default agent uses DeepSeek (cheap, no vision).
+# When a tool result contains an image (e.g. from app_screenshot),
+# this plugin routes that request to the configured vision model.
+#
+# Add to your cordis.patch.yml:
+
+- id: vision-router
+  plugin: dsh-llm-vision-router
+  config:
+    visionProvider: openai          # or: qwen, anthropic, openrouter
+    visionModel: gpt-4o-mini        # cheap vision model
+    toolResultsOnly: true           # only trigger on tool-returned images, not user uploads
+    verbose: false

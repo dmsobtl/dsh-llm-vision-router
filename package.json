@@ -1,0 +1,21 @@
+{
+  "name": "dsh-llm-vision-router",
+  "version": "0.1.0",
+  "description": "DSH plugin: auto-route to a multimodal model when messages contain images, stay on the cheap model otherwise.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "vitest run", "build": "tsc" },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=1.0.0",
+    "@deepseek-ai/dsh-llm": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "latest",
+    "@deepseek-ai/dsh-llm": "latest",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  },
+  "keywords": ["dsh-plugin", "deepseek-harness", "multimodal", "vision", "routing", "llm"],
+  "license": "MIT"
+}
