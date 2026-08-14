@@ -1,62 +1,56 @@
 import { describe, expect, it } from 'vitest'
 import { hasImageBlocks, countImages, isImageBlock } from '../src/detect.ts'
+import type { Message } from '@deepseek-ai/dsh-llm'
+
+const img = { type: 'image', attachment: { attachmentId: 'att-1', mediaType: 'image/png', bytes: 5, width: 2, height: 2 } } as const
+const text = { type: 'text', text: 'hello' } as const
+
+const user = (content: unknown[], kind: 'user' | 'tool' = 'user') => ({ role: 'user', content, source: { kind } }) as unknown as Message
+
+const toolResult = (inner: unknown[]) => user([
+  { type: 'tool-result', toolCallId: 'c1', content: inner, isError: false },
+], 'tool')
 
 describe('isImageBlock', () => {
-  it('detects image type', () => {
-    expect(isImageBlock({ type: 'image', source: { type: 'base64' } })).toBe(true)
-  })
-  it('detects image_url type', () => {
-    expect(isImageBlock({ type: 'image_url', image_url: { url: 'https://...' } })).toBe(true)
+  it('detects an image block', () => {
+    expect(isImageBlock(img as never)).toBe(true)
   })
   it('rejects text blocks', () => {
-    expect(isImageBlock({ type: 'text' })).toBe(false)
+    expect(isImageBlock(text as never)).toBe(false)
   })
 })
 
 describe('hasImageBlocks', () => {
   it('returns false for text-only messages', () => {
-    const msgs = [
-      { role: 'user', content: 'hello' },
-      { role: 'assistant', content: [{ type: 'text' }] },
-    ]
-    expect(hasImageBlocks(msgs as any)).toBe(false)
+    expect(hasImageBlocks([user([text])])).toBe(false)
   })
 
-  it('returns true when user message contains image', () => {
-    const msgs = [
-      { role: 'user', content: [{ type: 'text' }, { type: 'image', source: { type: 'base64' } }] },
-    ]
-    expect(hasImageBlocks(msgs as any)).toBe(true)
+  it('returns true when a user message contains an image', () => {
+    expect(hasImageBlocks([user([text, img])])).toBe(true)
   })
 
-  it('returns true when tool result contains image', () => {
-    const msgs = [
-      { role: 'tool', content: [{ type: 'text' }, { type: 'image', source: { type: 'base64', data: 'abc' } }] },
-    ]
-    expect(hasImageBlocks(msgs as any)).toBe(true)
+  it('returns true when a tool result contains a nested image', () => {
+    expect(hasImageBlocks([toolResult([text, img])])).toBe(true)
   })
 
-  it('respects toolResultsOnly flag', () => {
-    const msgs = [
-      { role: 'user', content: [{ type: 'image', source: { type: 'base64' } }] },
-      { role: 'tool', content: [{ type: 'text' }] },
-    ]
-    expect(hasImageBlocks(msgs as any, true)).toBe(false)
-    expect(hasImageBlocks(msgs as any, false)).toBe(true)
+  it('respects toolResultsOnly', () => {
+    const msgs = [user([img]), toolResult([text])]
+    expect(hasImageBlocks(msgs, true)).toBe(false)
+    expect(hasImageBlocks(msgs, false)).toBe(true)
+  })
+
+  it('detects a nested tool-result image even with toolResultsOnly', () => {
+    expect(hasImageBlocks([toolResult([img])], true)).toBe(true)
   })
 })
 
 describe('countImages', () => {
-  it('counts all image blocks across messages', () => {
-    const msgs = [
-      { role: 'user', content: [{ type: 'image' }, { type: 'text' }] },
-      { role: 'tool', content: [{ type: 'image' }, { type: 'image' }] },
-    ]
-    expect(countImages(msgs as any)).toBe(3)
+  it('counts images across messages including nested tool results', () => {
+    const msgs = [user([img, text]), toolResult([img, img])]
+    expect(countImages(msgs)).toBe(3)
   })
 
   it('returns 0 for no images', () => {
-    const msgs = [{ role: 'user', content: 'hello' }]
-    expect(countImages(msgs as any)).toBe(0)
+    expect(countImages([user([text])])).toBe(0)
   })
 })

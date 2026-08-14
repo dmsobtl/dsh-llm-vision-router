@@ -1,44 +1,42 @@
 /**
- * Image detection utilities, exported for testing and reuse.
+ * Image detection helpers over DSH message/content shapes.
+ *
+ * DSH represents images as `ImageBlock` (`{ type: 'image', attachment }`) and
+ * nests tool-result content inside `tool-result` blocks. `contentHasImage`
+ * from `@deepseek-ai/dsh-llm` is the canonical recursive walk, so these
+ * helpers delegate to it rather than re-implementing the nesting rules.
  */
 
-export interface ContentBlock {
-  type: string
-  source?: { type: string; media_type?: string; data?: string }
-  image_url?: { url: string }
-}
+import { contentHasImage } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, Message } from '@deepseek-ai/dsh-llm'
 
-export interface Message {
-  role: string
-  content: string | ContentBlock[]
-}
-
-export function hasImageBlocks(messages: Message[], toolResultsOnly = false): boolean {
+/** True when any message (optionally only tool-result messages) carries an image. */
+export function hasImageBlocks(messages: readonly Message[], toolResultsOnly = false): boolean {
   for (const msg of messages) {
-    if (toolResultsOnly && msg.role !== 'tool') continue
-    if (typeof msg.content === 'string') continue
-
-    for (const block of msg.content) {
-      if (isImageBlock(block)) return true
-    }
+    if (toolResultsOnly && msg.source.kind !== 'tool') continue
+    if (contentHasImage(msg.content)) return true
   }
   return false
 }
 
-export function isImageBlock(block: ContentBlock): boolean {
-  if (block.type === 'image') return true
-  if (block.type === 'image_url') return true
-  if (block.type === 'image_file') return true
-  return false
+/** Count image blocks across messages, including images nested in tool results. */
+export function countImages(messages: readonly Message[]): number {
+  let count = 0
+  for (const msg of messages) count += countImagesInContent(msg.content)
+  return count
 }
 
-export function countImages(messages: Message[]): number {
+/** Count image blocks in one content array, walking nested tool-result content. */
+export function countImagesInContent(content: readonly ContentBlock[]): number {
   let count = 0
-  for (const msg of messages) {
-    if (typeof msg.content === 'string') continue
-    for (const block of msg.content) {
-      if (isImageBlock(block)) count++
-    }
+  for (const block of content) {
+    if (block.type === 'image') count++
+    else if (block.type === 'tool-result') count += countImagesInContent(block.content)
   }
   return count
+}
+
+/** True for a DSH image content block. */
+export function isImageBlock(block: ContentBlock): boolean {
+  return block.type === 'image'
 }
