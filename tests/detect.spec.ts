@@ -5,11 +5,13 @@ import type { Message } from '@deepseek-ai/dsh-llm'
 const img = { type: 'image', attachment: { attachmentId: 'att-1', mediaType: 'image/png', bytes: 5, width: 2, height: 2 } } as const
 const text = { type: 'text', text: 'hello' } as const
 
-const user = (content: unknown[], kind: 'user' | 'tool' = 'user') => ({ role: 'user', content, source: { kind } }) as unknown as Message
+const user = (content: unknown[], kind: 'user' | 'tool' = 'user') =>
+  ({ role: kind === 'tool' ? 'tool' : 'user', content, source: { kind } }) as unknown as Message
 
-const toolResult = (inner: unknown[]) => user([
-  { type: 'tool-result', toolCallId: 'c1', content: inner, isError: false },
-], 'tool')
+// dsh 0.2.x: content blocks are flat — a tool result is a first-class
+// tool-role message (source.kind === 'tool') whose images sit directly in the
+// content array.
+const toolResult = (inner: unknown[]) => user(inner, 'tool')
 
 describe('isImageBlock', () => {
   it('detects an image block', () => {
@@ -29,7 +31,7 @@ describe('hasImageBlocks', () => {
     expect(hasImageBlocks([user([text, img])])).toBe(true)
   })
 
-  it('returns true when a tool result contains a nested image', () => {
+  it('returns true when a tool result contains an image', () => {
     expect(hasImageBlocks([toolResult([text, img])])).toBe(true)
   })
 
@@ -39,13 +41,13 @@ describe('hasImageBlocks', () => {
     expect(hasImageBlocks(msgs, false)).toBe(true)
   })
 
-  it('detects a nested tool-result image even with toolResultsOnly', () => {
+  it('detects a tool-result image even with toolResultsOnly', () => {
     expect(hasImageBlocks([toolResult([img])], true)).toBe(true)
   })
 })
 
 describe('countImages', () => {
-  it('counts images across messages including nested tool results', () => {
+  it('counts images across messages including tool results', () => {
     const msgs = [user([img, text]), toolResult([img, img])]
     expect(countImages(msgs)).toBe(3)
   })

@@ -1,5 +1,7 @@
 # dsh-llm-vision-router
 
+> 兼容 dsh 0.2.1-rc.x（@deepseek-ai/cordis ~4.0.5、@deepseek-ai/dsh-tools ~0.2.1-rc.2）。v0.1.1 起 content block 为扁平结构、工具结果为 role:'tool' 消息。
+
 DSH 插件：消息含图片时自动路由到多模态模型，无图片时继续用便宜的 DeepSeek。
 
 ## 为什么需要

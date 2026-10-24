@@ -1,10 +1,12 @@
 /**
  * Image detection helpers over DSH message/content shapes.
  *
- * DSH represents images as `ImageBlock` (`{ type: 'image', attachment }`) and
- * nests tool-result content inside `tool-result` blocks. `contentHasImage`
- * from `@deepseek-ai/dsh-llm` is the canonical recursive walk, so these
- * helpers delegate to it rather than re-implementing the nesting rules.
+ * DSH represents images as `ImageBlock` (`{ type: 'image', attachment }`).
+ * Since dsh 0.2.x content blocks are flat: tool results are first-class
+ * `role: 'tool'` messages whose images sit directly in the message content
+ * array, with no nested `tool-result` blocks to walk. `contentHasImage` from
+ * `@deepseek-ai/dsh-llm` is the canonical walk, so these helpers delegate to
+ * it rather than re-implementing the rules.
  */
 
 import { contentHasImage } from '@deepseek-ai/dsh-llm'
@@ -26,12 +28,11 @@ export function countImages(messages: readonly Message[]): number {
   return count
 }
 
-/** Count image blocks in one content array, walking nested tool-result content. */
+/** Count image blocks in one content array. */
 export function countImagesInContent(content: readonly ContentBlock[]): number {
   let count = 0
   for (const block of content) {
     if (block.type === 'image') count++
-    else if (block.type === 'tool-result') count += countImagesInContent(block.content)
   }
   return count
 }
